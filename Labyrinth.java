@@ -5,15 +5,14 @@
  */
 package ProjectAkhir;
 
-import Learn.MineFront;
-import de.matthiasmann.twl.utils.PNGDecoder;
-import de.matthiasmann.twl.utils.PNGDecoder.Format;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.lwjgl.BufferUtils;
@@ -35,9 +34,9 @@ import org.newdawn.slick.Color;
  */
 public class Labyrinth {
 
-    public static final int DISPLAY_HEIGHT = 480;
+    public static final int DISPLAY_HEIGHT = 640;
     public static final int DISPLAY_WIDTH = 640;
-    public static final Logger LOGGER = Logger.getLogger(Field.class.getName());
+    public static final Logger LOGGER = Logger.getLogger(Labyrinth.class.getName());
 
     /**
      * Defines if the application is resizable.
@@ -71,12 +70,11 @@ public class Labyrinth {
      * The size of tiles, where 0.5 is the standard size. Increasing the size by
      * results in smaller tiles, and vice versa.
      */
-
     private static final float tileSize = 0.20f;
     /**
      * The maximal distance from the camera where objects are rendered.
      */
-    private static final float zFar = 20f;
+    private static final float zFar = 100f;
     /**
      * The distance where fog starts appearing.
      */
@@ -84,7 +82,7 @@ public class Labyrinth {
     /**
      * The distance where the fog stops appearing (fully black here)
      */
-    private static final float fogFar = 13f;
+    private static final float fogFar = 12f;
     /**
      * The color of the fog in rgba.
      */
@@ -130,16 +128,18 @@ public class Labyrinth {
      * Defines the field of view.
      */
     private static final int fov = 68;
-
+    private Texture m_texture;
+    private int m_texID[] = new int[10];
+    public final static int NO_WRAP = -1;
     private static int fps;
     private static int delta;
     private static long lastFPS;
     private static long lastFrame;
 
     public static void main(String[] args) {
-        Field main = null;
+        Labyrinth main = null;
         try {
-            main = new Field();
+            main = new Labyrinth();
             main.create();
             main.run();
         } catch (Exception ex) {
@@ -155,7 +155,7 @@ public class Labyrinth {
 
         Display.setDisplayMode(new DisplayMode(DISPLAY_WIDTH, DISPLAY_HEIGHT));
         Display.setResizable(resizable);
-        Display.setTitle("Field");
+        Display.setTitle("Labyrinth");
         Display.create();
 
         //Create Keyboard
@@ -167,7 +167,6 @@ public class Labyrinth {
 
         initGL();
         resizeGL();
-
     }
 
     public void resizeGL() {
@@ -195,7 +194,6 @@ public class Labyrinth {
         glEnable(GL_ALPHA_TEST);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-        glEnable(GL_FOG);
     }
 
     private static long getTime() {
@@ -230,6 +228,26 @@ public class Labyrinth {
         //2D Initialization
         glColor3b((byte) 255, (byte) 0, (byte) 0);
         glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+
+        IntBuffer textureIDBuffer = BufferUtils.createIntBuffer(10);
+        glGenTextures(textureIDBuffer);
+        m_texID[0] = textureIDBuffer.get(0);//Wall
+        m_texID[1] = textureIDBuffer.get(1);//Sky West
+        m_texID[2] = textureIDBuffer.get(2);//Sky East
+        m_texID[3] = textureIDBuffer.get(3);//Sky North
+        m_texID[4] = textureIDBuffer.get(4);//Sky South
+        m_texID[5] = textureIDBuffer.get(5);//Sky Up
+        m_texID[6] = textureIDBuffer.get(6);//Grass
+        m_texID[7] = textureIDBuffer.get(7);//Tree
+        // Load 1 texture
+        loadTexture(m_texID[0], "C:/libs/LWJGL/res/images/wall.png", false, GL_LINEAR, GL_REPEAT);
+        loadTexture(m_texID[1], "C:/libs/LWJGL/res/images/0.png", false, GL_LINEAR, GL_REPEAT);
+        loadTexture(m_texID[2], "C:/libs/LWJGL/res/images/90.png", false, GL_LINEAR, GL_REPEAT);
+        loadTexture(m_texID[3], "C:/libs/LWJGL/res/images/180.png", false, GL_LINEAR, GL_REPEAT);
+        loadTexture(m_texID[4], "C:/libs/LWJGL/res/images/270.png", false, GL_LINEAR, GL_REPEAT);
+        loadTexture(m_texID[5], "C:/libs/LWJGL/res/images/up.png", false, GL_LINEAR, GL_REPEAT);
+        loadTexture(m_texID[6], "C:/libs/LWJGL/res/images/grass.png", false, GL_LINEAR, GL_REPEAT);
+        loadTexture(m_texID[7], "C:/libs/LWJGL/res/images/tree.png", true, GL_LINEAR, -1);
     }
 
     public void processKeyboard() {
@@ -351,6 +369,18 @@ public class Labyrinth {
         if (moveSlower && !moveFaster) {
             walkingSpeed *= 10f;
         }
+        if (Keyboard.isKeyDown(Keyboard.KEY_F)) {
+            System.out.println(position.y);
+            float angle = rotation.y;
+            Vector3f newPosition = new Vector3f(position);
+            float hypotenuse = (walkingSpeed * 0.0002f) * delta;
+            float adjacent = hypotenuse * (float) Math.cos(Math.toRadians(angle));
+            float opposite = (float) (Math.sin(Math.toRadians(angle)) * hypotenuse);
+            newPosition.z += adjacent;
+            newPosition.x -= opposite;
+            position.z = newPosition.z;
+            position.x = newPosition.x;
+        }
 
         while (Keyboard.next()) {
             if (Keyboard.isKeyDown(Keyboard.KEY_C)) {
@@ -374,6 +404,12 @@ public class Labyrinth {
             if (Keyboard.isKeyDown(Keyboard.KEY_Z)) {
                 System.out.println("Walking speed changed to " + walkingSpeed + ".");
                 walkingSpeed -= 1;
+            }
+            if (Keyboard.isKeyDown(Keyboard.KEY_N)) {
+                enableNight();
+            }
+            if (Keyboard.isKeyDown(Keyboard.KEY_M)) {
+                disableNight();
             }
         }
     }
@@ -410,25 +446,7 @@ public class Labyrinth {
 
     void render() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         delta = getDelta();
-
-//        glEnable(GL_CULL_FACE);
-//        glDisable(GL_DEPTH_TEST);
-//        glEnable(GL_DEPTH_TEST);
-//        glDisable(GL_CULL_FACE);
-//        glBindTexture(GL_TEXTURE_2D, 0);
-//
-//        glEnable(GL_DEPTH_TEST);
-//        glEnable(GL_TEXTURE_2D);
-//        glEnable(GL_BLEND);
-//        glEnable(GL_ALPHA_TEST);
-//        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-//        glEnable(GL_CULL_FACE);
-//        glCullFace(GL_BACK);
-//        glEnable(GL_FOG);
-
         glLoadIdentity();
         glRotatef(rotation.x, 1, 0, 0);
         glRotatef(rotation.y, 0, 1, 0);
@@ -446,20 +464,45 @@ public class Labyrinth {
             }
         }
 
-        //Draw Sky
-//        drawSky();
+        //Draw SkyBox
+        drawSkyBox(80, 40);
+        
+        
         //Draw Floor
-            glColor3f(1.0f, 1.0f, 1.0f);
-            glBegin(GL_QUADS);
-            glVertex3f(-100f,-0.5f,100f);
-            glVertex3f(100f,-0.5f,100f);
-            glVertex3f(100f,-0.5f,-100f);
-            glVertex3f(-100f,-0.5f,-100f);
-            glEnd();
-        //Draw wall
-        glColor3f(0.0f, 1.0f, 0.0f);
+        glBindTexture(GL_TEXTURE_2D, m_texID[6]);
         glBegin(GL_QUADS);
+        glTexCoord2f(0, 0);
+        glVertex3f(-50, -0.5f, 50f);
+        glTexCoord2f(0, 100);
+        glVertex3f(50f, -0.5f, 50f);
+        glTexCoord2f(100, 100);
+        glVertex3f(50f, -0.5f, -50f);
+        glTexCoord2f(100, 0);
+        glVertex3f(-50f, -0.5f, -50f);
+        glEnd();
 
+        //Draw wall
+        glBindTexture(GL_TEXTURE_2D, m_texID[0]);
+        glBegin(GL_QUADS);
+        createWall();
+        glEnd();
+        
+        //Draw tree
+        for (int i = 1; i <= 10; i++) {
+        glTranslatef(1.5f, 0f, 0);
+        drawTree(0.5f,0.5f);
+        }
+        for (int i = 1; i <= 20; i++) {
+        glTranslatef(-1.5f, 0f, 0);
+        drawTree(0.5f,0.5f);
+        }
+    }
+    
+    /**
+     * Create wall of labyrinth
+     */
+    void createWall(){
+        glColor3f(1.0f, 1.0f, 1.0f);
 //            Outer front left
         drawWall(-1.0f, -12.0f, -1.5f, -2.5f);
 
@@ -568,216 +611,215 @@ public class Labyrinth {
         drawWall(-7.5f, -10.0f, -12.5f, -13.5f);
         drawWall(-7.5f, -10.0f, -15.5f, -16.5f);
 
-        glEnd();
     }
 
-    public void drawSky() {
-//        int floorTexture = glGenTextures();
-//        {
-//            InputStream in = null;
-//            try {
-//                in = new FileInputStream("C:/libs/LWJGL/res/images/floor.png");
-//                PNGDecoder decoder = new PNGDecoder(in);
-//                ByteBuffer buffer = BufferUtils.createByteBuffer(4 * decoder.getWidth() * decoder.getHeight());
-//                decoder.decode(buffer, decoder.getWidth() * 4, Format.RGBA);
-//                buffer.flip();
-//                glBindTexture(GL_TEXTURE_2D, floorTexture);
-//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, decoder.getWidth(), decoder.getHeight(), 0, GL_RGBA,
-//                        GL_UNSIGNED_BYTE, buffer);
-//                glBindTexture(GL_TEXTURE_2D, 0);
-//            } catch (FileNotFoundException ex) {
-//                System.err.println("Failed to find the texture files.");
-//                ex.printStackTrace();
-//                Display.destroy();
-//                System.exit(1);
-//            } catch (IOException ex) {
-//                System.err.println("Failed to load the texture files.");
-//                ex.printStackTrace();
-//                Display.destroy();
-//                System.exit(1);
-//            } finally {
-//                if (in != null) {
-//                    try {
-//                        in.close();
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }
-//        }
-//
-//        int ceilingDisplayList = glGenLists(1);
-//        glNewList(ceilingDisplayList, GL_COMPILE);
-        glBegin(GL_QUADS);
-        glTexCoord2f(0, 0);
-        glVertex3f(-gridSize, ceilingHeight, -gridSize);
-        glTexCoord2f(gridSize * 10 * tileSize, 0);
-        glVertex3f(gridSize, ceilingHeight, -gridSize);
-        glTexCoord2f(gridSize * 10 * tileSize, gridSize * 10 * tileSize);
-        glVertex3f(gridSize, ceilingHeight, gridSize);
-        glTexCoord2f(0, gridSize * 10 * tileSize);
-        glVertex3f(-gridSize, ceilingHeight, gridSize);
-        glEnd();
-//        glEndList();
+    private void loadTexture(int texID, String path, boolean transparent, int filter, int wrap) {
+        m_texture = new Texture();
+        if (!m_texture.load(path)) {
+            System.out.println("Failed to load texture\n");
+            return;
+        }
 
-        int wallDisplayList = glGenLists(1);
-        glNewList(wallDisplayList, GL_COMPILE);
+        glBindTexture(GL_TEXTURE_2D, texID);
 
-        glBegin(GL_QUADS);
+        if (transparent) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_texture.getWidth(),
+                    m_texture.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                    m_texture.getImageData());
+        } else {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_texture.getWidth(),
+                    m_texture.getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE,
+                    m_texture.getImageData());
+        }
 
-        glBegin(GL_QUADS);
-        glTexCoord2f(0, 0);
-        glVertex3f(-100f, -0.5f, 100f);
-        glTexCoord2f(0, 1);
-        glVertex3f(100f, -0.5f, 100f);
-        glTexCoord2f(1, 0);
-        glVertex3f(100f, -0.5f, -100f);
-        glTexCoord2f(0, 0);
-        glVertex3f(-100f, -0.5f, -100f);
-        glEnd();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 
-        // North wall
-//        glTexCoord2f(0, 0);
-//        glVertex3f(-gridSize, floorHeight, -gridSize);
-//        glTexCoord2f(0, gridSize * 10 * tileSize);
-//        glVertex3f(gridSize, floorHeight, -gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, gridSize * 10 * tileSize);
-//        glVertex3f(gridSize, ceilingHeight, -gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, 0);
-//        glVertex3f(-gridSize, ceilingHeight, -gridSize);
-//
-//        // West wall
-//
-//        glTexCoord2f(0, 0);
-//        glVertex3f(-gridSize, floorHeight, -gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, 0);
-//        glVertex3f(-gridSize, ceilingHeight, -gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, gridSize * 10 * tileSize);
-//        glVertex3f(-gridSize, ceilingHeight, +gridSize);
-//        glTexCoord2f(0, gridSize * 10 * tileSize);
-//        glVertex3f(-gridSize, floorHeight, +gridSize);
-//
-//        // East wall
-//
-//        glTexCoord2f(0, 0);
-//        glVertex3f(+gridSize, floorHeight, -gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, 0);
-//        glVertex3f(+gridSize, floorHeight, +gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, gridSize * 10 * tileSize);
-//        glVertex3f(+gridSize, ceilingHeight, +gridSize);
-//        glTexCoord2f(0, gridSize * 10 * tileSize);
-//        glVertex3f(+gridSize, ceilingHeight, -gridSize);
-//
-//        // South wall
-//
-//        glTexCoord2f(0, 0);
-//        glVertex3f(-gridSize, floorHeight, +gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, 0);
-//        glVertex3f(-gridSize, ceilingHeight, +gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, gridSize * 10 * tileSize);
-//        glVertex3f(+gridSize, ceilingHeight, +gridSize);
-//        glTexCoord2f(0, gridSize * 10 * tileSize);
-//        glVertex3f(+gridSize, floorHeight, +gridSize);
-//
-//        glEnd();
-//
-//        glEndList();
-//
-//        int floorDisplayList = glGenLists(1);
-//        glNewList(floorDisplayList, GL_COMPILE);
-//        glBegin(GL_QUADS);
-//        glTexCoord2f(0, 0);
-//        glVertex3f(-gridSize, floorHeight, -gridSize);
-//        glTexCoord2f(0, gridSize * 10 * tileSize);
-//        glVertex3f(-gridSize, floorHeight, gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, gridSize * 10 * tileSize);
-//        glVertex3f(gridSize, floorHeight, gridSize);
-//        glTexCoord2f(gridSize * 10 * tileSize, 0);
-//        glVertex3f(gridSize, floorHeight, -gridSize);
-//        glEnd();
-//        glEndList();
+        if (wrap == -1) {
+            return;
+        }
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
+
     }
 
+    private void drawSkyBox(float width, float height) {
+		width = width / 2;
+
+		// front side
+		glBindTexture(GL_TEXTURE_2D, m_texID[1]);
+		glBegin(GL_QUADS);
+		glTexCoord2d(0, 0);
+		glVertex3f(-width, -0.5f, -width);
+		glTexCoord2d(1, 0);
+		glVertex3f(width, -0.5f, -width);
+		glTexCoord2d(1, 1);
+		glVertex3f(width, height, -width);
+		glTexCoord2d(0, 1);
+		glVertex3f(-width, height, -width);
+		glEnd();
+
+		// right side
+		glBindTexture(GL_TEXTURE_2D, m_texID[2]);
+		glBegin(GL_QUADS);
+		glTexCoord2d(0, 0);
+		glVertex3f(width, -0.5f, -width);
+		glTexCoord2d(1, 0);
+		glVertex3f(width, -0.5f, width);
+		glTexCoord2d(1, 1);
+		glVertex3f(width, height, width);
+		glTexCoord2d(0, 1);
+		glVertex3f(width, height, -width);
+		glEnd();
+
+		// back side
+		glBindTexture(GL_TEXTURE_2D, m_texID[3]);
+		glBegin(GL_QUADS);
+		glTexCoord2d(0, 0);
+		glVertex3f(width, -0.5f, width);
+		glTexCoord2d(1, 0);
+		glVertex3f(-width, -0.5f, width);
+		glTexCoord2d(1, 1);
+		glVertex3f(-width, height, width);
+		glTexCoord2d(0, 1);
+		glVertex3f(width, height, width);
+		glEnd();
+
+		// left side
+		glBindTexture(GL_TEXTURE_2D, m_texID[4]);
+		glBegin(GL_QUADS);
+		glTexCoord2d(0, 0);
+		glVertex3f(-width, -0.5f, width);
+		glTexCoord2d(1, 0);
+		glVertex3f(-width, -0.5f, -width);
+		glTexCoord2d(1, 1);
+		glVertex3f(-width, height, -width);
+		glTexCoord2d(0, 1);
+		glVertex3f(-width, height, width);
+		glEnd();
+
+		// top side
+		glBindTexture(GL_TEXTURE_2D, m_texID[5]);
+		glBegin(GL_QUADS);
+		glTexCoord2d(1, 1);
+		glVertex3f(width, height, -width);
+		glTexCoord2d(0, 1);
+		glVertex3f(width, height, width);
+		glTexCoord2d(0, 0);
+		glVertex3f(-width, height, width);
+		glTexCoord2d(1, 0);
+		glVertex3f(-width, height, -width);
+		glEnd();
+	}
+    
+    private void drawTree(float width, float height) {
+		width = width / 2;
+
+		glBindTexture(GL_TEXTURE_2D, m_texID[7]);
+		glBegin(GL_QUADS);
+		// front quads
+		glTexCoord2d(0, 0);
+		glVertex3f(-width, -0.5f, 0);
+		glTexCoord2d(1, 0);
+		glVertex3f(width, -0.5f, 0);
+		glTexCoord2d(1, 1);
+		glVertex3f(width, height, 0);
+		glTexCoord2d(0, 1);
+		glVertex3f(-width, height, 0);
+
+		// cross quads
+		glTexCoord2d(0, 0);
+		glVertex3f(0, -0.5f, width);
+		glTexCoord2d(1, 0);
+		glVertex3f(0, -0.5f, -width);
+		glTexCoord2d(1, 1);
+		glVertex3f(0, height, -width);
+		glTexCoord2d(0, 1);
+		glVertex3f(0, height, width);
+		glEnd();
+	}
+    
     public void drawWall(float xKiri, float xKanan, float zDepan, float zBelakang) {
-
+        float x, z;
+        if (resizable) {
+            x = Math.abs(xKanan - xKiri);
+            z = Math.abs(zDepan - zBelakang);
+        }
         //Kanan
+        glTexCoord2f(0, 0);
         glVertex3f(xKanan, -0.5f, zDepan);
-        glVertex3f(xKanan, -0.5f, zBelakang);
-        glVertex3f(xKanan, 0.5f, zBelakang);
+        glTexCoord2f(0, 1);
         glVertex3f(xKanan, 0.5f, zDepan);
+        glTexCoord2f(z, 1);
+        glVertex3f(xKanan, 0.5f, zBelakang);
+        glTexCoord2f(z, 0);
+        glVertex3f(xKanan, -0.5f, zBelakang);
 
 //        //Kiri
+        glTexCoord2f(0, 0);
         glVertex3f(xKiri + 0.5f, -0.5f, zDepan);
-        glVertex3f(xKiri + 0.5f, -0.5f, zBelakang);
-        glVertex3f(xKiri + 0.5f, 0.5f, zBelakang);
+        glTexCoord2f(0, 1);
         glVertex3f(xKiri + 0.5f, 0.5f, zDepan);
+        glTexCoord2f(z, 1);
+        glVertex3f(xKiri + 0.5f, 0.5f, zBelakang);
+        glTexCoord2f(z, 0);
+        glVertex3f(xKiri + 0.5f, -0.5f, zBelakang);
 
         //Belakang
+        glTexCoord2f(0, 0);
         glVertex3f(xKanan, -0.5f, zBelakang);
+        glTexCoord2f(0, 1);
         glVertex3f(xKanan, 0.5f, zBelakang);
+        glTexCoord2f(x, 1);
         glVertex3f(xKiri + 0.5f, 0.5f, zBelakang);
+        glTexCoord2f(x, 0);
         glVertex3f(xKiri + 0.5f, -0.5f, zBelakang);
 
 //        Depan
-//        glTexCoord2f(0, 0);
+        glTexCoord2f(0, 0);
         glVertex3f(xKanan, -0.5f, zDepan);
-//        glTexCoord2f(xKanan, 1.0f);
+        glTexCoord2f(0, 1);
         glVertex3f(xKanan, 0.5f, zDepan);
-//        glTexCoord2f(1.0f, xKanan);
+        glTexCoord2f(x, 1);
         glVertex3f(xKiri + 0.5f, 0.5f, zDepan);
-//        glTexCoord2f(0, -xKiri);
+        glTexCoord2f(x, 0);
         glVertex3f(xKiri + 0.5f, -0.5f, zDepan);
 
         //Atas
-        glVertex3f(xKanan, 0.5f, zDepan);
-        glVertex3f(xKanan, 0.5f, zBelakang);
-        glVertex3f(xKiri + 0.5f, 0.5f, zBelakang);
-        glVertex3f(xKiri + 0.5f, 0.5f, zDepan);
+        if (z > x) {
+            glTexCoord2f(0, 0);
+            glVertex3f(xKanan, 0.5f, zDepan);
+            glTexCoord2f(0, x);
+            glVertex3f(xKiri + 0.5f, 0.5f, zDepan);
+            glTexCoord2f(z, 1);
+            glVertex3f(xKiri + 0.5f, 0.5f, zBelakang);
+            glTexCoord2f(z, 0);
+            glVertex3f(xKanan, 0.5f, zBelakang);
+        } else {
+            glTexCoord2f(0, 0);
+            glVertex3f(xKanan, 0.5f, zDepan);
+            glTexCoord2f(0, 1);
+            glVertex3f(xKanan, 0.5f, zBelakang); 
+            glTexCoord2f(x, 1);
+            glVertex3f(xKiri + 0.5f, 0.5f, zBelakang);
+            glTexCoord2f(x, 0);
+            glVertex3f(xKiri + 0.5f, 0.5f, zDepan);
+
+        }
 
         glEndList();
 
     }
 
-    static void texture() {
-        int floorTexture = glGenTextures();
-        {
-            InputStream in = null;
-            try {
-                in = new FileInputStream("C:/libs/LWJGL/res/images/floor.png");
-                PNGDecoder decoder = new PNGDecoder(in);
-                ByteBuffer buffer = BufferUtils.createByteBuffer(4 * decoder.getWidth() * decoder.getHeight());
-                decoder.decode(buffer, decoder.getWidth() * 4, PNGDecoder.Format.RGBA);
-                buffer.flip();
-                glBindTexture(GL_TEXTURE_2D, floorTexture);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, decoder.getWidth(), decoder.getHeight(), 0, GL_RGBA,
-                        GL_UNSIGNED_BYTE, buffer);
-                glBindTexture(GL_TEXTURE_2D, 0);
-            } catch (FileNotFoundException ex) {
-                System.err.println("Failed to find the texture files.");
-                ex.printStackTrace();
-                Display.destroy();
-                System.exit(1);
-            } catch (IOException ex) {
-                System.err.println("Failed to load the texture files.");
-                ex.printStackTrace();
-                Display.destroy();
-                System.exit(1);
-            } finally {
-                if (in != null) {
-                    try {
-                        in.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
+    public void enableNight(){
+            glEnable(GL_FOG);
     }
-
+    
+    public void disableNight(){
+            glDisable(GL_FOG);
+    }
+    
     void run() {
         while (!Display.isCloseRequested() && !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)) {
             if (Display.isVisible()) {
