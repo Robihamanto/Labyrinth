@@ -19,13 +19,13 @@ Final Project Computer Graphic (Modeling Coban Rondo Labyrinth)
 ###Labyrinth From Front (Model Textured) : 
 ![alt tag](https://photos-1.dropbox.com/t/2/AABbyp24YkVMQT8eXbyCeddHrhjHaQ9WbmKfaRUr31DQfQ/12/219798151/jpeg/32x32/1/1465585200/0/2/Labyrinth%20From%20Front%20(Model%20Textured).JPG/EKOapKUBGImHASACKAI/UCUKhKOPKl0dzKVZjW3aAXw4qFJC-d_q7FcPB3sjhQw?size_mode=3&size=1280x960)
 
-Key : 
-N -> Enable Night Mode
-M -> Disable Night Mode
-Space -> Fly Mode
-Left Shift -> Down Mode
-O -> Increase Mouse Speed
-L -> Dicrease Mouse Speed
-Left Control -> Increase Walking Speed
-Tab -> Decrease Walking Speed
-C -> Back to Beginning Position
+###Key : 
+N -> Enable Night Mode<br />
+M -> Disable Night Mode<br />
+Space -> Fly Mode<br />
+Left Shift -> Down Mode<br />
+O -> Increase Mouse Speed<br />
+L -> Dicrease Mouse Speed<br />
+Left Control -> Increase Walking Speed<br />
+Tab -> Decrease Walking Speed<br />
+C -> Back to Beginning Position<br />
