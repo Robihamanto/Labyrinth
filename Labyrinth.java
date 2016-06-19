@@ -34,7 +34,7 @@ import org.newdawn.slick.Color;
  */
 public class Labyrinth {
 
-    public static final int DISPLAY_HEIGHT = 640;
+    public static final int DISPLAY_HEIGHT = 480;
     public static final int DISPLAY_WIDTH = 640;
     public static final Logger LOGGER = Logger.getLogger(Labyrinth.class.getName());
 
@@ -62,31 +62,21 @@ public class Labyrinth {
      */
     private static final float zNear = 0.3f;
     /**
-     * The width and length of the floor and ceiling. Don't put anything above
-     * 1000, or OpenGL will start to freak out, though.
-     */
-    private static final int gridSize = 10;
-    /**
-     * The size of tiles, where 0.5 is the standard size. Increasing the size by
-     * results in smaller tiles, and vice versa.
-     */
-    private static final float tileSize = 0.20f;
-    /**
      * The maximal distance from the camera where objects are rendered.
      */
     private static final float zFar = 100f;
     /**
      * The distance where fog starts appearing.
      */
-    private static final float fogNear = 9f;
+    private static final float fogNear = 9;
     /**
      * The distance where the fog stops appearing (fully black here)
      */
-    private static final float fogFar = 12f;
+    private static final float fogFar = 13f;
     /**
      * The color of the fog in rgba.
      */
-    private static final Color fogColor = new Color(0f, 0f, 0f, 1f);
+    private static final Color fogColor = new Color(0f, 0f, 0f, 0.00001f);
     /**
      * Defines if the application utilizes full-screen.
      */
@@ -100,11 +90,6 @@ public class Labyrinth {
      */
     private static int mouseSpeed = 2;
     /**
-     * Defines if the application utilizes vertical synchronization (eliminates
-     * screen tearing; caps fps to 60fps)
-     */
-    private static final boolean vsync = true;
-    /**
      * Defines if the applications prints its frames-per-second to the console.
      */
     private static final boolean printFPS = false;
@@ -116,14 +101,6 @@ public class Labyrinth {
      * Defines the minimum angle at which the player can look down.
      */
     private static final int maxLookDown = -85;
-    /**
-     * The height of the ceiling.
-     */
-    private static final float ceilingHeight = 10;
-    /**
-     * The height of the floor.
-     */
-    private static final float floorHeight = -1;
     /**
      * Defines the field of view.
      */
@@ -247,7 +224,7 @@ public class Labyrinth {
         loadTexture(m_texID[4], "C:/libs/LWJGL/res/images/270.png", false, GL_LINEAR, GL_REPEAT);
         loadTexture(m_texID[5], "C:/libs/LWJGL/res/images/up.png", false, GL_LINEAR, GL_REPEAT);
         loadTexture(m_texID[6], "C:/libs/LWJGL/res/images/grass.png", false, GL_LINEAR, GL_REPEAT);
-        loadTexture(m_texID[7], "C:/libs/LWJGL/res/images/tree.png", true, GL_LINEAR, -1);
+        loadTexture(m_texID[7], "C:/libs/LWJGL/res/images/tree.png", true, GL_LINEAR, NO_WRAP);
     }
 
     public void processKeyboard() {
@@ -814,6 +791,18 @@ public class Labyrinth {
 
     public void enableNight(){
             glEnable(GL_FOG);
+            {
+            FloatBuffer fogColours = BufferUtils.createFloatBuffer(4);
+            fogColours.put(new float[]{fogColor.r, fogColor.g, fogColor.b, fogColor.a});
+            glClearColor(fogColor.r, fogColor.g, fogColor.b, fogColor.a);
+            fogColours.flip();
+            glFog(GL_FOG_COLOR, fogColours);
+            glFogi(GL_FOG_MODE, GL_LINEAR);
+            glHint(GL_FOG_HINT, GL_NICEST);
+            glFogf(GL_FOG_START, fogNear);
+            glFogf(GL_FOG_END, fogFar);
+            glFogf(GL_FOG_DENSITY, 0.005f);
+        }
     }
     
     public void disableNight(){
